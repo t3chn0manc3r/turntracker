@@ -7,8 +7,8 @@ var enemy = new Schema({
     ac: Number,
     touch: Number,
     flat: Number,
-    init: Number,
-    dex: Number
+    initmod: Number,
+    dexmod: Number
 });
 
 module.exports = mongoose.model('Enemy', enemy);

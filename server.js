@@ -1,8 +1,10 @@
 //Module Import
 const express = require('express');
+const session = require('express-session');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
+const MongoStore = require('connect-mongo')(session);
 
 //Config Loading
 const config = require('./config.json');
@@ -24,6 +26,12 @@ db.once('open',()=>{
 var User = require('./models/user');
 var Character = require('./models/character');
 var Enemy = require('./models/enemy');
+
+//Session Setup
+app.use(session({
+    secret: config.session.secret,
+    store: new MongoStore({mongooseConnection: mongoose.connection})
+}));
 
 //API Calls
 app.post('/api/signup',(req,res)=>{

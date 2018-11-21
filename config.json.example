@@ -1,0 +1,14 @@
+{
+	"server":{
+		"port":1234
+	},
+	"db":{
+		"url":"mongodb://localhost:27017/turntracker"
+	},
+    "session":{
+        "secret":"secrethere"
+    },
+	"encryption":{
+		"rounds":10
+	}
+}
