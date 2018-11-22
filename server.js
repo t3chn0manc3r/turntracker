@@ -35,7 +35,7 @@ app.use(session({
 
 //API Calls
 app.post('/api/signup',(req,res)=>{
-    console.log('/api/signup');
+    console.log('POST /api/signup');
 
     User.findOne({username:req.body.user},(err,user) => {
         if (err) {
@@ -64,7 +64,7 @@ app.post('/api/signup',(req,res)=>{
     });
 });
 app.post('/api/login',(req,res)=>{
-    console.log('/api/login');
+    console.log('POST /api/login');
 
     User.findOne({username:req.body.user},(err,user)=>{
         if (err) {
@@ -72,13 +72,46 @@ app.post('/api/login',(req,res)=>{
             res.status(500).end();
             return;
         }
-        if (bcrypt.compareSync(req.body.pass, user.password)) {
-            res.status(202).send("Success");
+        if (user && user.password && bcrypt.compareSync(req.body.pass, user.password)) {
+            req.session.user = {
+                id: user._id,
+                name:user.name,
+                username: user.username
+            }
+            res.status(202).json(req.session.user);
         }
         else {
-            res.status(401).send("Failed");
+            res.status(401).json({err:"Invalid Login Information"});
         }
     });
+});
+app.get('/api/login',(req,res)=>{
+    console.log('GET /api/login');
+
+    if (req.session.user) {
+        res.json(req.session.user);
+    }
+    else {
+        res.status(401).end();
+    }
+});
+app.delete('/api/login',(req,res)=>{
+    console.log('DELETE /api/login');
+
+    if (req.session.user) {
+        req.session.destroy((err)=>{
+            if (err) {
+                console.log(err);
+                res.status(500).end();
+            }
+            else {
+                res.status(200).end();
+            }
+        });
+    }
+    else {
+        res.status(401).end();
+    }
 });
 
 //Server Binding
