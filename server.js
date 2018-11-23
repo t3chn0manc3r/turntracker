@@ -33,7 +33,7 @@ app.use(session({
     store: new MongoStore({mongooseConnection: mongoose.connection})
 }));
 
-//API Calls
+//Session
 app.post('/api/signup',(req,res)=>{
     console.log('POST /api/signup');
 
@@ -113,6 +113,10 @@ app.delete('/api/login',(req,res)=>{
         res.status(401).end();
     }
 });
+
+//Characters
+
+//Enemies
 
 //Server Binding
 app.listen(config.server.port, function() {

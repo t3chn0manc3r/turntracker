@@ -2,8 +2,9 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.Schema.Types.ObjectId;
 
-var character = new Schema({
+var actor = new Schema({
     playerId: ObjectId,
+    pc: Boolean,
     name: String,
     hp: Number,
     ac: Number,
@@ -13,4 +14,4 @@ var character = new Schema({
     dexmod: Number
 });
 
-module.exports = mongoose.model('Character', character);
+module.exports = mongoose.model('Actor', actor);

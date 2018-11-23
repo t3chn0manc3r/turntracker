@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
-var enemy = new Schema({
+var monster = new Schema({
     name: String,
     hp: Number,
     ac: Number,
@@ -11,4 +11,4 @@ var enemy = new Schema({
     dexmod: Number
 });
 
-module.exports = mongoose.model('Enemy', enemy);
+module.exports = mongoose.model('Monster', monster);
