@@ -23,9 +23,11 @@ db.once('open',()=>{
 });
 
 //Mongoose Models
+var ObjectId = mongoose.Types.ObjectId;
 var User = require('./models/user');
-var Character = require('./models/character');
-var Enemy = require('./models/enemy');
+var GameRoom = require('./models/gameroom');
+var Actor = require('./models/actor');
+var Monster = require('./models/monster');
 
 //Session Setup
 app.use(session({
@@ -33,7 +35,8 @@ app.use(session({
     store: new MongoStore({mongooseConnection: mongoose.connection})
 }));
 
-//Session
+//User & Session
+// -NEEDS VALIDATION
 app.post('/api/signup',(req,res)=>{
     console.log('POST /api/signup');
 
@@ -63,6 +66,7 @@ app.post('/api/signup',(req,res)=>{
         }
     });
 });
+//Might be able to drop the find one check due to unique condition
 app.post('/api/login',(req,res)=>{
     console.log('POST /api/login');
 
@@ -114,9 +118,208 @@ app.delete('/api/login',(req,res)=>{
     }
 });
 
-//Characters
+//GameRoom
+app.post('/api/gameroom',(req,res)=>{
+    console.log('POST /api/gameroom');
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    var usr = req.session.user;
+    var gid = Math.random().toString(16).slice(2,8);
+    var newGameRoom = new GameRoom({
+        gm: ObjectId(usr.id),
+        title: req.body.title,
+        gametype: req.body.gametype,
+        gameid: gid,
+        teamvisibility: req.body.teamvisibility,
+        incombat: false,
+        turn: 0,
+        ondeck: 0,
+        rotation: [],
+        inactive: [],
+        players: []
+    });
+    newGameRoom.save((err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        res.status(200).json({gameid:gid});
+    });
+});
+//Make information more usable on client side (usernames,etc)
+app.get('/api/gameroom/:gameid',(req,res)=>{
+    console.log('GET /api/gameroom/'+req.params.gameid);
 
-//Enemies
+    GameRoom.findOne({gameid:req.params.gameid},(err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (result) {
+            if (result.gm == req.session.user.id) {
+                res.status(200).json(result);
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
+});
+app.delete('/api/gameroom/:gameid',(req,res)=>{
+    console.log('DELETE /api/gameroom/'+req.params.gameid);
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+
+    GameRoom.findOne({gameid:req.params.gameid},(err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (result) {
+            if (result.gm == req.session.user.id) {
+                GameRoom.deleteOne({ gameid: req.params.gameid }, function (err) {
+                    if (err) {
+                        console.log(err);
+                        res.status(500).end();
+                        return;
+                    }
+                    res.status(200).end();
+                });
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
+});
+
+//Actors
+app.post('/api/actor',(req,res)=>{
+    console.log('POST /api/actor');
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    var newActor = new Actor({
+        playerId: ObjectId(req.session.user.id),
+        pc: true,
+        name: req.body.name,
+        hp: req.body.hp,
+        currhp: req.body.hp,
+        ac: req.body.ac,
+        currac: req.body.ac,
+        touch: req.body.touch,
+        currtouch: req.body.touch,
+        flat: req.body.flat,
+        currflat: req.body.flat,
+        initmod: req.body.initmod,
+        dexmod: req.body.dexmod
+    });
+    newActor.save((err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        res.status(200).json({actorid:result._id});
+    });
+});
+app.get('/api/actor/:actorid',(req,res)=>{
+    console.log('GET /api/gameroom/'+req.params.actorid);
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    Actor.findOne({_id:req.params.actorid},(err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (result) {
+            if (result.playerId == req.session.user.id) {
+                res.status(200).json(result);
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
+});
+app.delete('/api/actor/:actorid',(req,res)=>{
+    console.log('/api/actor/'+req.params.actorid);
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    Actor.findOne({_id:req.params.actorid},(err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (result) {
+            if (result.playerId == req.session.user.id) {
+                Actor.deleteOne({ _id: req.params.actorid }, function (err) {
+                    if (err) {
+                        console.log(err);
+                        res.status(500).end();
+                        return;
+                    }
+                    res.status(200).end();
+                });
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
+});
+
+//Monsters
+app.post('/api/monster',(req,res)=>{
+    console.log('POST /api/monster');
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    var newMonster = new Monster({
+        playerId: ObjectId,
+        pc: Boolean,
+        name: String,
+        hp: Number,
+        ac: Number,
+        touch: Number,
+        flat: Number,
+        initmod: Number,
+        dexmod: Number
+    });
+});
+app.get('/api/monster/:monsterid',(req,res)=>{
+
+});
+app.delete('/api/monster/:monsterid',(req,res)=>{
+
+});
 
 //Server Binding
 app.listen(config.server.port, function() {

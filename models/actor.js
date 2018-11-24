@@ -7,9 +7,13 @@ var actor = new Schema({
     pc: Boolean,
     name: String,
     hp: Number,
+    currhp: Number,
     ac: Number,
+    currac: Number,
     touch: Number,
+    currtouch: Number,
     flat: Number,
+    currtouch: Number,
     initmod: Number,
     dexmod: Number
 });
