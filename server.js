@@ -54,7 +54,8 @@ app.post('/api/signup',(req,res)=>{
             var newUser = new User({
                 name:req.body.name,
                 username:req.body.user,
-                password:hash
+                password:hash,
+                rooms:[]
             });
             newUser.save((err,result)=>{
                if (err) {
@@ -80,7 +81,8 @@ app.post('/api/login',(req,res)=>{
             req.session.user = {
                 id: user._id,
                 name:user.name,
-                username: user.username
+                username: user.username,
+                admin: user.admin
             }
             res.status(202).json(req.session.user);
         }
@@ -138,6 +140,7 @@ app.post('/api/gameroom',(req,res)=>{
         ondeck: 0,
         rotation: [],
         inactive: [],
+        requesting: [],
         players: []
     });
     newGameRoom.save((err,result)=>{
@@ -250,7 +253,7 @@ app.get('/api/actor/:actorid',(req,res)=>{
             return;
         }
         if (result) {
-            if (result.playerId == req.session.user.id) {
+            if (result.playerId == req.session.user.id || req.session.user.admin) {
                 res.status(200).json(result);
             }
             else {
@@ -275,7 +278,7 @@ app.delete('/api/actor/:actorid',(req,res)=>{
             return;
         }
         if (result) {
-            if (result.playerId == req.session.user.id) {
+            if (result.playerId == req.session.user.id || req.session.user.admin) {
                 Actor.deleteOne({ _id: req.params.actorid }, function (err) {
                     if (err) {
                         console.log(err);
@@ -302,23 +305,90 @@ app.post('/api/monster',(req,res)=>{
         res.status(401).end();
         return;
     }
+    else if (!req.session.user.admin) {
+        res.status(403).end();
+        return;
+    }
     var newMonster = new Monster({
-        playerId: ObjectId,
-        pc: Boolean,
-        name: String,
-        hp: Number,
-        ac: Number,
-        touch: Number,
-        flat: Number,
-        initmod: Number,
-        dexmod: Number
+        name: req.body.name,
+        cr: req.body.cr,
+        hp: req.body.hp,
+        ac: req.body.ac,
+        touch: req.body.touch,
+        flat: req.body.flat,
+        initmod: req.body.initmod,
+        dexmod: req.body.dexmod,
+        description: req.body.description
+    });
+    newMonster.save((err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        res.status(200).json({monsterid:result._id});
     });
 });
 app.get('/api/monster/:monsterid',(req,res)=>{
-
+    console.log('GET /api/monster/'+req.params.monsterid);
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    Monster.findOne({_id:req.params.monsterid},(err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (result) {
+            if (result.playerId == req.session.user.id) {
+                res.status(200).json(result);
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
 });
 app.delete('/api/monster/:monsterid',(req,res)=>{
-
+    console.log('DELETE /api/monster/'+req.params.monsterid);
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    else if (!req.session.user.admin) {
+        res.status(403).end();
+        return;
+    }
+    Monster.findOne({_id:req.params.monsterid},(err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (result) {
+            if (req.session.user.admin) {
+                Monster.deleteOne({ _id: req.params.monsterid }, function (err) {
+                    if (err) {
+                        console.log(err);
+                        res.status(500).end();
+                        return;
+                    }
+                    res.status(200).end();
+                });
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
 });
 
 //Server Binding

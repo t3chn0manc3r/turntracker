@@ -13,6 +13,7 @@ var gameroom = new Schema({
     ondeck: {type:Number,required:true},
     rotation: {type:Array, required:true},
     inactive: {type:Array, required:true},
+    requesting: {type:Array, required:true},
     players: {type:Array, required:true}
 });
 
