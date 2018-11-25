@@ -223,7 +223,37 @@ app.put('/api/gameroom/:gameid/start',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,result)=>{
+        if (result) {
+            if (result.gm == req.session.user.id) {
+                // ERROR checking for actors
+                //Need to find a way to edit the rotation for initiative
+                GameRoom.updateOne({gameid:req.params.gameid},{
+                    incombat:true,
+                    turn:1,
+                    ondeck:0
+                },(err,result)=>{
+                    if (err) {
+                        console.log(err);
+                        res.status(500).end();
+                        return;
+                    }
+                    if (result && n === 1) {
+                        res.status(200).end();
+                    }
+                    else {
+                        res.status(400).end();
+                    }
+                });
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
 });
 //Cycles the turn to the next actor in the GameRoom
 app.put('/api/gameroom/:gameid/next',(req,res)=>{
@@ -231,7 +261,43 @@ app.put('/api/gameroom/:gameid/next',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,result)=>{
+        if (result) {
+            if (result.gm == req.session.user.id) {
+                if (result.incombat) {
+                    var turn = result.turn, ondeck = result.ondeck + 1;
+                    if (ondeck === result.rotation.length) {
+                        turn++;
+                        ondeck = 0;
+                    }
+                    GameRoom.updateOne({gameid:req.params.gameid},{
+                        turn,ondeck
+                    },(err,result)=>{
+                        if (err) {
+                            console.log(err);
+                            res.status(500).end();
+                            return;
+                        }
+                        if (result && n === 1) {
+                            res.status(200).end();
+                        }
+                        else {
+                            res.status(400).end();
+                        }
+                    });
+                }
+                else {
+                    res.status(400).json({err:"Not in Combat"});
+                }
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
 });
 //Stops combat in the specified GameRoom
 app.put('/api/gameroom/:gameid/end',(req,res)=>{
@@ -239,7 +305,35 @@ app.put('/api/gameroom/:gameid/end',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,result)=>{
+        if (result) {
+            if (result.gm == req.session.user.id) {
+                GameRoom.updateOne({gameid:req.params.gameid},{
+                    incombat:false,
+                    turn:0,
+                    ondeck:0
+                },(err,result)=>{
+                    if (err) {
+                        console.log(err);
+                        res.status(500).end();
+                        return;
+                    }
+                    if (result && n === 1) {
+                        res.status(200).end();
+                    }
+                    else {
+                        res.status(400).end();
+                    }
+                });
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
 });
 //Creates a custom Monster for the specified GameRoom
 app.post('/api/gameroom/:gameid/monster',(req,res)=>{
@@ -247,7 +341,43 @@ app.post('/api/gameroom/:gameid/monster',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,result)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end;
+            return;
+        }
+        if (result) {
+            if (result.gm == req.session.user.id) {
+                var newMonster = new Monster({
+                    name: req.body.name,
+                    cr: req.body.cr,
+                    hp: req.body.hp,
+                    ac: req.body.ac,
+                    touch: req.body.touch,
+                    flat: req.body.flat,
+                    initmod: req.body.initmod,
+                    dexmod: req.body.dexmod,
+                    gameroomid: req.params.gameid,
+                    description: req.body.description
+                });
+                newMonster.save((err,result)=>{
+                    if (err) {
+                        console.log(err);
+                        res.status(500).end();
+                        return;
+                    }
+                    res.status(200).json({monsterid:result._id});
+                });
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).end();
+        }
+    });
 });
 //Gets all the custom and global Monsters for the specified room
 app.get('/api/gameroom/:gameid/monster',(req,res)=>{
