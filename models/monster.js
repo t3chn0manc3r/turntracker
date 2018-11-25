@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
+var ObjectId = mongoose.Schema.Types.ObjectId;
 
 var monster = new Schema({
     name: {type:String,unique:true,required:true},
@@ -10,6 +11,7 @@ var monster = new Schema({
     flat: {type:Number,required:true},
     initmod: {type:Number,required:true},
     dexmod: {type:Number,required:true},
+    gameroomid: ObjectId,
     description: String
 });
 

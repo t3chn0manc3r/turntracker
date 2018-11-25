@@ -36,7 +36,8 @@ app.use(session({
 }));
 
 //User & Session
-// -NEEDS VALIDATION
+//=========================================================
+//Lets Users create an account
 app.post('/api/signup',(req,res)=>{
     console.log('POST /api/signup');
 
@@ -67,7 +68,7 @@ app.post('/api/signup',(req,res)=>{
         }
     });
 });
-//Might be able to drop the find one check due to unique condition
+//Creates a User Session
 app.post('/api/login',(req,res)=>{
     console.log('POST /api/login');
 
@@ -91,6 +92,7 @@ app.post('/api/login',(req,res)=>{
         }
     });
 });
+//Gets a logged in User's information
 app.get('/api/login',(req,res)=>{
     console.log('GET /api/login');
 
@@ -101,6 +103,7 @@ app.get('/api/login',(req,res)=>{
         res.status(401).end();
     }
 });
+//Deletes the User's active session
 app.delete('/api/login',(req,res)=>{
     console.log('DELETE /api/login');
 
@@ -121,6 +124,8 @@ app.delete('/api/login',(req,res)=>{
 });
 
 //GameRoom
+//=========================================================
+//Create a new GameRoom
 app.post('/api/gameroom',(req,res)=>{
     console.log('POST /api/gameroom');
     if (!req.session.user) {
@@ -152,10 +157,13 @@ app.post('/api/gameroom',(req,res)=>{
         res.status(200).json({gameid:gid});
     });
 });
-//Make information more usable on client side (usernames,etc)
+//Gets information about the specified GameRoom
 app.get('/api/gameroom/:gameid',(req,res)=>{
     console.log('GET /api/gameroom/'+req.params.gameid);
-
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
     GameRoom.findOne({gameid:req.params.gameid},(err,result)=>{
         if (err) {
             console.log(err);
@@ -175,6 +183,7 @@ app.get('/api/gameroom/:gameid',(req,res)=>{
         }
     });
 });
+//Deletes the GameRoom
 app.delete('/api/gameroom/:gameid',(req,res)=>{
     console.log('DELETE /api/gameroom/'+req.params.gameid);
     if (!req.session.user) {
@@ -208,8 +217,115 @@ app.delete('/api/gameroom/:gameid',(req,res)=>{
         }
     });
 });
+//Starts combat in the GameRoom
+app.put('/api/gameroom/:gameid/start',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Cycles the turn to the next actor in the GameRoom
+app.put('/api/gameroom/:gameid/next',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Stops combat in the specified GameRoom
+app.put('/api/gameroom/:gameid/end',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Creates a custom Monster for the specified GameRoom
+app.post('/api/gameroom/:gameid/monster',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Gets all the custom and global Monsters for the specified room
+app.get('/api/gameroom/:gameid/monster',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Adds an/multiple instance(s) of the specified Monster into the game
+app.post('/api/gameroom/:gameid/monster/:monsterid',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Adds the specified Actor to the game if gm, adds as request otherwise
+app.post('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Allows GM of the GameRoom to edit a joined Actor
+app.put('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Hides the information of a joined Actor from the rest of the Players in the Game Room
+app.put('/api/gameroom/:gameid/actor/:actorid/hide',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Reveals the information of a joined Actor to the rest of the Players in the Game Room
+app.put('/api/gameroom/:gameid/actor/:actorid/reveal',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Puts the specified Actor back into the GameRoom Rotation
+app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Removes the specified Actor back into the GameRoom Rotation
+app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Removes the specified Actor from the GameRoom,
+//If is an NPC, will delete from existence
+app.delete('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
 
 //Actors
+//=========================================================
+//Creates a new Character
 app.post('/api/actor',(req,res)=>{
     console.log('POST /api/actor');
     if (!req.session.user) {
@@ -219,6 +335,7 @@ app.post('/api/actor',(req,res)=>{
     var newActor = new Actor({
         playerId: ObjectId(req.session.user.id),
         pc: true,
+        ingame: false,
         name: req.body.name,
         hp: req.body.hp,
         currhp: req.body.hp,
@@ -240,6 +357,7 @@ app.post('/api/actor',(req,res)=>{
         res.status(200).json({actorid:result._id});
     });
 });
+//Gets information on the specified Actor
 app.get('/api/actor/:actorid',(req,res)=>{
     console.log('GET /api/gameroom/'+req.params.actorid);
     if (!req.session.user) {
@@ -265,6 +383,15 @@ app.get('/api/actor/:actorid',(req,res)=>{
         }
     });
 });
+//Edits the information of the specifed Actor
+app.put('/api/actor/:actorid',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    res.status(400).end(); //-----------------------------------
+});
+//Deletes the specified Actor
 app.delete('/api/actor/:actorid',(req,res)=>{
     console.log('/api/actor/'+req.params.actorid);
     if (!req.session.user) {
@@ -299,6 +426,8 @@ app.delete('/api/actor/:actorid',(req,res)=>{
 });
 
 //Monsters
+//=========================================================
+//Creates a new Monster for global usage
 app.post('/api/monster',(req,res)=>{
     console.log('POST /api/monster');
     if (!req.session.user) {
@@ -329,6 +458,7 @@ app.post('/api/monster',(req,res)=>{
         res.status(200).json({monsterid:result._id});
     });
 });
+//Gets the global Monster list
 app.get('/api/monster/:monsterid',(req,res)=>{
     console.log('GET /api/monster/'+req.params.monsterid);
     if (!req.session.user) {
@@ -354,6 +484,19 @@ app.get('/api/monster/:monsterid',(req,res)=>{
         }
     });
 });
+//Edits the global Monster
+app.put('/api/monster/:monsterid',(req,res)=>{
+    if (!req.session.user) {
+        res.status(401).end();
+        return;
+    }
+    else if (!req.session.user.admin) {
+        res.status(403).end();
+        return;
+    }
+    res.status(400).end(); //------------------------------------
+});
+//Deletes the global Monster
 app.delete('/api/monster/:monsterid',(req,res)=>{
     console.log('DELETE /api/monster/'+req.params.monsterid);
     if (!req.session.user) {
@@ -392,6 +535,7 @@ app.delete('/api/monster/:monsterid',(req,res)=>{
 });
 
 //Server Binding
+//=========================================================
 app.listen(config.server.port, function() {
     console.log("TurnTracker running on port "+config.server.port);
 });
