@@ -4,6 +4,7 @@ var ObjectId = mongoose.Schema.Types.ObjectId;
 
 var monster = new Schema({
     name: {type:String,unique:true,required:true},
+    gametype: {type: Boolean,required:true},
     cr: {type:Number,required:true},
     hp: {type:Number,required:true},
     ac: {type:Number,required:true},
