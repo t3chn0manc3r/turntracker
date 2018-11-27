@@ -7,6 +7,7 @@ var actor = new Schema({
     pc: {type:Boolean,required:true},
     gametype: {type: Boolean,required:true},
     ingame: {type:Boolean,required:true},
+    gameid: String,
     name: {type:String,required:true},
     hp: {type:Number,required:true},
     currhp: {type:Number,required:true},

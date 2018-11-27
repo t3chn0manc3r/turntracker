@@ -303,7 +303,7 @@ app.post('/api/monster',(req,res)=>{
         res.status(403).end();
         return;
     }
-    var check = validateBody(monsterPostAllowed,monsterPostRequired,req.body);
+    var check = validateBody(monsterPostRequired,monsterPostRequired,req.body);
     if (!check.status) {
         res.status(400).json({err:check.errors});
         return;
@@ -677,6 +677,7 @@ app.put('/api/gameroom/:gameid/end',(req,res)=>{
 });
 //Creates a custom Monster for the specified GameRoom
 app.post('/api/gameroom/:gameid/monster',(req,res)=>{
+    console.log("POST /api/gameroom/"+req.params.gameid+"/monster");
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -720,7 +721,7 @@ app.post('/api/gameroom/:gameid/monster',(req,res)=>{
             }
         }
         else {
-            res.status(400).end();
+            res.status(400).json({err:"Invalid GameRoom"});
         }
     });
 });
@@ -757,8 +758,8 @@ app.get('/api/gameroom/:gameid/monster',(req,res)=>{
     });
 });
 //Adds an/multiple instance(s) of the specified Monster into the game
-// - Add functionality for quantity of monsters
 app.post('/api/gameroom/:gameid/monster/:monsterid',(req,res)=>{
+    console.log('POST /api/gameroom/'+req.params.gameid+'/monster/'+req.params.monsterid);
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -771,39 +772,55 @@ app.post('/api/gameroom/:gameid/monster/:monsterid',(req,res)=>{
         }
         if (result) {
             if (result.gm == req.session.user.id) {
-                Monster.findOne({gameroomid:req.params.gameid},(err,monster)=>{
+                Monster.findOne({_id:req.params.monsterid},(err,monster)=>{
                     if (err) {
                         console.log(err);
                         res.status(500).end();
                         return;
                     }
                     if (monster) {
-                        var newActor = new Actor({
-                            playerId: ObjectId(req.session.user.id),
-                            pc: false,
-                            gametype: monster.gametype,
-                            ingame: true,
-                            name: monster.name,
-                            hp: monster.hp,
-                            currhp: monster.hp,
-                            ac: monster.ac,
-                            currac: monster.ac,
-                            touch: monster.touch,
-                            currtouch: monster.touch,
-                            flat: monster.flat,
-                            currflat: monster.flat,
-                            initiative: 0,
-                            initmod: monster.initmod,
-                            dexmod: monster.dexmod
-                        });
-                        newActor.save((err,monsterinfo)=>{
+                        if (monster.gameroomid && (monster.gameroomid != req.params.gameid)) {
+                            res.status(403).end();
+                            return;
+                        }
+                        var qty = 1;
+                        if (req.body.qty && Number.isInteger(req.body.qty,{min:1})) {
+                            qty = req.body.qty;
+                        }
+                        else if (req.body.qty) {
+                            res.status(400).json({err:"Invalid Quantity"});
+                            return;
+                        }
+                        var actors = [];
+                        for (let i = 1; i <= qty; i++) {
+                            actors.push({
+                                playerId: ObjectId(req.session.user.id),
+                                pc: false,
+                                gametype: monster.gametype,
+                                ingame: true,
+                                name: monster.name + " " + i,
+                                hp: monster.hp,
+                                currhp: monster.hp,
+                                ac: monster.ac,
+                                currac: monster.ac,
+                                touch: monster.touch,
+                                currtouch: monster.touch,
+                                flat: monster.flat,
+                                currflat: monster.flat,
+                                initiative: 0,
+                                initmod: monster.initmod,
+                                dexmod: monster.dexmod
+                            });
+                        }
+                        Actor.insertMany(actors,(err,monsterinfo)=>{
                             if (err) {
                                 console.log(err);
                                 res.status(500).end();
                                 return;
                             }
-                            result.rotation.push(monsterinfo._id);
-                            GameRoom.updateOne({gameid:req.params.gameid},{inactive:result.rotation},(err,update)=>{
+                            res.status(200).end();
+                            var add = monsterinfo.map((dat)=>dat._id);
+                            GameRoom.updateOne({gameid:req.params.gameid},{inactive:result.inactive.concat(add)},(err,update)=>{
                                 if (err) {
                                     console.log(err);
                                     res.status(500).end();
@@ -814,7 +831,7 @@ app.post('/api/gameroom/:gameid/monster/:monsterid',(req,res)=>{
                         });
                     }
                     else {
-                        res.status(400).end();
+                        res.status(400).json({err:"Invalid Monster"});
                     }
                 });
             }
@@ -823,7 +840,7 @@ app.post('/api/gameroom/:gameid/monster/:monsterid',(req,res)=>{
             }
         }
         else {
-            res.status(400).end();
+            res.status(400).json({err:"Invalid GameRoom"});
         }
     });
 });
@@ -868,7 +885,7 @@ app.post('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
                         });
                     }
                     else {
-                        res.status(400).end();
+                        res.status(400).json({err:"Invalid GameRoom"});
                     }
                 });
             }
@@ -877,7 +894,7 @@ app.post('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
             }
         }
         else {
-            res.status(400).end();
+            res.status(400).json({err:"Invalid Actor"});
         }
     });
 });
