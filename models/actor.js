@@ -3,7 +3,7 @@ var Schema = mongoose.Schema;
 var ObjectId = mongoose.Schema.Types.ObjectId;
 
 var actor = new Schema({
-    playerId: {type:ObjectId,required:true},
+    playerid: {type:ObjectId,required:true},
     pc: {type:Boolean,required:true},
     gametype: {type: Boolean,required:true},
     ingame: {type:Boolean,required:true},

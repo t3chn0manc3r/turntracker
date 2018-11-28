@@ -11,6 +11,13 @@ const config = require('./config.json');
 
 //Express Setup
 var app = express();
+
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
@@ -77,14 +84,16 @@ app.post('/api/signup',(req,res)=>{
                 name:req.body.name,
                 username:req.body.user,
                 password:hash,
+                admin: false,
                 rooms:[]
             });
             newUser.save((err,result)=>{
                if (err) {
+                   console.log(err);
                    res.status(500).end();
                    return;
                }
-               res.status(200).json(result);
+               res.status(200).end();
             });
         }
     });
@@ -104,7 +113,8 @@ app.post('/api/login',(req,res)=>{
                 id: user._id,
                 name:user.name,
                 username: user.username,
-                admin: user.admin
+                admin: user.admin,
+                rooms: user.rooms
             }
             res.status(202).json(req.session.user);
         }
@@ -163,7 +173,7 @@ app.post('/api/actor',(req,res)=>{
         return;
     }
     var newActor = new Actor({
-        playerId: ObjectId(req.session.user.id),
+        playerid: ObjectId(req.session.user.id),
         pc: true,
         gametype: req.body.gametype,
         ingame: false,
@@ -203,7 +213,7 @@ app.get('/api/actor/:actorid',(req,res)=>{
             return;
         }
         if (result) {
-            if (result.playerId == req.session.user.id || req.session.user.admin) {
+            if (result.playerid == req.session.user.id || req.session.user.admin) {
                 res.status(200).json(result);
             }
             else {
@@ -233,7 +243,7 @@ app.put('/api/actor/:actorid',(req,res)=>{
             return;
         }
         if (result) {
-            if (result.playerId == req.session.user.id || req.session.user.admin) {
+            if (result.playerid == req.session.user.id || req.session.user.admin) {
                 Actor.updateOne({ _id: req.params.actorid }, req.body, function (err) {
                     if (err) {
                         console.log(err);
@@ -266,7 +276,7 @@ app.delete('/api/actor/:actorid',(req,res)=>{
             return;
         }
         if (result) {
-            if (result.playerId == req.session.user.id || req.session.user.admin) {
+            if (result.playerid == req.session.user.id || req.session.user.admin) {
                 Actor.deleteOne({ _id: req.params.actorid }, function (err) {
                     if (err) {
                         console.log(err);
@@ -364,7 +374,7 @@ app.get('/api/monster/:monsterid',(req,res)=>{
             return;
         }
         if (result) {
-            if (result.playerId == req.session.user.id) {
+            if (result.playerid == req.session.user.id) {
                 res.status(200).json(result);
             }
             else {
@@ -491,7 +501,6 @@ app.post('/api/gameroom',(req,res)=>{
     });
 });
 //Gets information about the specified GameRoom
-// - Allow person with character in game to get filtered info
 app.get('/api/gameroom/:gameid',(req,res)=>{
     console.log('GET /api/gameroom/'+req.params.gameid);
     if (!req.session.user) {
@@ -506,11 +515,20 @@ app.get('/api/gameroom/:gameid',(req,res)=>{
         }
         if (result) {
             if (result.gm == req.session.user.id) {
-                res.status(200).json(result);
+                res.json(result);
             }
             else {
-                //Filtered info here
-                res.status(403).end();
+                var playerinfo = {
+                    gm: "Name Here",
+                    title: result.title,
+                    incombat: result.incombat,
+                    turn: result.turn,
+                    ondeck: result.ondeck,
+                    rotation: result.rotation,
+                    players: result.players
+                };
+
+                res.json(playerinfo);
             }
         }
         else {
@@ -566,12 +584,11 @@ app.put('/api/gameroom/:gameid/start',(req,res)=>{
                     return;
                 }
 
-                //Need to find a way to edit the rotation for initiative
-
                 GameRoom.updateOne({gameid:req.params.gameid},{
                     incombat:true,
                     turn:1,
-                    ondeck:0
+                    ondeck:0,
+                    $push:{rotation:{$each:[],$sort:{initiative:-1,dexmod:-1,pc:-1}}}
                 },(err,result)=>{
                     if (err) {
                         console.log(err);
@@ -794,7 +811,7 @@ app.post('/api/gameroom/:gameid/monster/:monsterid',(req,res)=>{
                         var actors = [];
                         for (let i = 1; i <= qty; i++) {
                             actors.push({
-                                playerId: ObjectId(req.session.user.id),
+                                playerid: ObjectId(req.session.user.id),
                                 pc: false,
                                 gametype: monster.gametype,
                                 ingame: true,
@@ -820,7 +837,7 @@ app.post('/api/gameroom/:gameid/monster/:monsterid',(req,res)=>{
                             }
                             res.status(200).end();
                             var add = monsterinfo.map((dat)=>dat._id);
-                            GameRoom.updateOne({gameid:req.params.gameid},{inactive:result.inactive.concat(add)},(err,update)=>{
+                            GameRoom.updateOne({gameid:req.params.gameid},{$push:{inactive:{$each:add}}},(err)=>{
                                 if (err) {
                                     console.log(err);
                                     res.status(500).end();
@@ -857,7 +874,7 @@ app.post('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
             return;
         }
         if (actor) {
-            if (actor.playerId == req.session.user.id) {
+            if (actor.playerid == req.session.user.id) {
                 GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
                     if (err) {
                         console.log(err);
@@ -874,8 +891,7 @@ app.post('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
                             res.status(400).json({err:"Actor Already in Game"});
                             return;
                         }
-                        room.requesting.push(actor._id);
-                        GameRoom.updateOne({gameid:req.params.gameid},{requesting:room.requesting},(err,result)=>{
+                        GameRoom.updateOne({gameid:req.params.gameid},{$push:{requesting:actor._id}},(err)=>{
                             if (err) {
                                 console.log(err);
                                 res.status(500).end();
@@ -904,7 +920,38 @@ app.put('/api/gameroom/:gameid/actor/:actorid/approve',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (room) {
+            if (req.session.user.id == room.gm) {
+                if (room.requesting.includes(ObjectId(req.params.actorid))) {
+                    GameRoom.updateOne({gameid:req.params.gameid},
+                     {$pull:{requesting:ObjectId(req.params.actorid)},
+                     $push:{inactive:ObjectId(req.params.actorid)}},(err)=>{
+                         if (err) {
+                             console.log(err);
+                             res.status(500).end();
+                             return;
+                         }
+                         res.status(200).end();
+                    });
+                }
+                else {
+                    res.status(400).json({err:"Request for Actor not found"});
+                }
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).json({err:"Invalid GameId"});
+        }
+    });
 });
 //Denies a request for an Actor to join
 app.put('/api/gameroom/:gameid/actor/:actorid/deny',(req,res)=>{
@@ -912,7 +959,37 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deny',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (room) {
+            if (req.session.user.id == room.gm) {
+                if (room.requesting.includes(ObjectId(req.params.actorid))) {
+                    GameRoom.updateOne({gameid:req.params.gameid},
+                     {$pull:{requesting:ObjectId(req.params.actorid)}},(err)=>{
+                         if (err) {
+                             console.log(err);
+                             res.status(500).end();
+                             return;
+                         }
+                         res.status(200).end();
+                    });
+                }
+                else {
+                    res.status(400).json({err:"Request for Actor not found"});
+                }
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).json({err:"Invalid GameRoom"});
+        }
+    });
 });
 //Allows GM of the GameRoom to edit a joined Actor
 app.put('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
@@ -920,7 +997,55 @@ app.put('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (room) {
+            if ((room.rotation.includes(ObjectId(req.params.actorid)) ||
+             room.inactive.includes(ObjectId(req.params.actorid)))) {
+                Actor.findOne({_id:req.params.actorid},(err,actor)=>{
+                    if (err) {
+                        console.log(err);
+                        res.status(500).end();
+                        return;
+                    }
+                    if (actor) {
+                        if (req.session.user.id == room.gm ||
+                         req.session.user.id == actor.playerid) {
+                             var check = validateBody(actorAllowed,[],req.body);
+                             if (!check.status) {
+                                 res.status(400).json({err:check.errors});
+                                 return;
+                             }
+                             Actor.updateOne({ _id: req.params.actorid }, req.body, function (err) {
+                                 if (err) {
+                                     console.log(err);
+                                     res.status(500).end();
+                                     return;
+                                 }
+                                 res.status(200).end();
+                             });
+                        }
+                        else {
+                            res.status(403).end();
+                        }
+                    }
+                    else {
+                        res.status(400).json({err:"Invalid Actor"});
+                    }
+                });
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).json({err:"Invalid GameRoom"});
+        }
+    });
 });
 //Hides the information of a joined Actor from the rest of the Players in the Game Room
 app.put('/api/gameroom/:gameid/actor/:actorid/hide',(req,res)=>{
@@ -928,7 +1053,38 @@ app.put('/api/gameroom/:gameid/actor/:actorid/hide',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (room) {
+            if (req.session.user.id == room.gm) {
+                var actorids = room.rotation.map((obj)=>obj.id);
+                if (actorids.includes(ObjectId(req.params.actorid))) {
+                    GameRoom.updateOne({gameid:req.params.gameid, "rotation.id":ObjectId(req.params.actorid)},
+                     {$set:{"rotation.$.visible":true}},(err)=>{
+                         if (err) {
+                             console.log(err);
+                             res.status(500).end();
+                             return;
+                         }
+                         res.status(200).end();
+                    });
+                }
+                else {
+                    res.status(400).json({err:"Actor is not Active"});
+                }
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).json({err:"Invalid GameId"});
+        }
+    });
 });
 //Reveals the information of a joined Actor to the rest of the Players in the Game Room
 app.put('/api/gameroom/:gameid/actor/:actorid/reveal',(req,res)=>{
@@ -936,7 +1092,38 @@ app.put('/api/gameroom/:gameid/actor/:actorid/reveal',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (room) {
+            if (req.session.user.id == room.gm) {
+                var actorids = room.rotation.map((obj)=>obj.id);
+                if (actorids.includes(ObjectId(req.params.actorid))) {
+                    GameRoom.updateOne({gameid:req.params.gameid, "rotation.id":ObjectId(req.params.actorid)},
+                     {$set:{"rotation.$.visible":false}},(err)=>{
+                         if (err) {
+                             console.log(err);
+                             res.status(500).end();
+                             return;
+                         }
+                         res.status(200).end();
+                    });
+                }
+                else {
+                    res.status(400).json({err:"Actor is not Active"});
+                }
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).json({err:"Invalid GameId"});
+        }
+    });
 });
 //Puts the specified Actor back into the GameRoom Rotation
 app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
@@ -944,7 +1131,54 @@ app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (room) {
+            if (req.session.user.id == room.gm) {
+                if (room.inactive.includes(ObjectId(req.params.actorid))) {
+                    Actor.findOne((err,actor)=>{
+                        if (err) {
+                            console.log(err);
+                            res.status(500).end();
+                            return;
+                        }
+                        if (actor) {
+                            var visibility = room.teamvisibility && actor.pc;
+                            GameRoom.updateOne({gameid:req.params.gameid},
+                             {$pull:{inactive:ObjectId(req.params.actorid)},
+                             $push:{rotation:{
+                                 id: ObjectId(req.params.actorid),
+                                 visible: visibility
+                             }}},(err)=>{
+                                 if (err) {
+                                     console.log(err);
+                                     res.status(500).end();
+                                     return;
+                                 }
+                                 res.status(200).end();
+                            });
+                        }
+                        else {
+                            res.status(400).json({err:"Actor Not Found"});
+                        }
+                    });
+                }
+                else {
+                    res.status(400).json({err:"Actor is not Inactive"});
+                }
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).json({err:"Invalid GameId"});
+        }
+    });
 });
 //Removes the specified Actor back into the GameRoom Rotation
 app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
@@ -952,7 +1186,39 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (room) {
+            if (req.session.user.id == room.gm) {
+                var actorids = room.inactive.map((obj)=>obj.id);
+                if (actorids.includes(ObjectId(req.params.actorid))) {
+                    GameRoom.updateOne({gameid:req.params.gameid},
+                     {$push:{inactive:ObjectId(req.params.actorid)},
+                     $pull:{rotation:{id: ObjectId(req.params.actorid)}}},(err)=>{
+                         if (err) {
+                             console.log(err);
+                             res.status(500).end();
+                             return;
+                         }
+                         res.status(200).end();
+                    });
+                }
+                else {
+                    res.status(400).json({err:"Actor is not Inactive"});
+                }
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).json({err:"Invalid GameId"});
+        }
+    });
 });
 //Removes the specified Actor from the GameRoom,
 //If is an NPC, will delete from existence
@@ -961,11 +1227,76 @@ app.delete('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
         res.status(401).end();
         return;
     }
-    res.status(400).end(); //------------------------------------
+    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        if (room) {
+            if ((room.rotation.includes(ObjectId(req.params.actorid)) ||
+             room.inactive.includes(ObjectId(req.params.actorid)))) {
+                Actor.findOne({_id:req.params.actorid},(err,actor)=>{
+                    if (err) {
+                        console.log(err);
+                        res.status(500).end();
+                        return;
+                    }
+                    if (actor) {
+                        if (req.session.user.id == room.gm &&
+                         req.session.user.id == actor.playerid &&
+                         !actor.pc) {
+                             Actor.deleteOne({_id: req.params.actorid}, (err) => {
+                                 if (err) {
+                                     console.log(err);
+                                     res.status(500).end();
+                                     return;
+                                 }
+                                 res.status(200).end();
+                             });
+                        }
+                        else if (req.session.user.id == room.gm ||
+                         req.session.user.id == actor.playerid) {
+                            Actor.updateOne({_id: req.params.actorid},{$unset:{gameid:""}},(err)=>{
+                                if (err) {
+                                    console.log(err);
+                                    res.status(500).end();
+                                    return;
+                                }
+                                GameRoom.updateOne({gameid:req.params.gameid},
+                                 {$pull:{inactive:ObjectId(req.params.actorid),
+                                 rotation:{id:ObjectId(req.params.actorid)}}},
+                                 (err)=>{
+                                    if (err) {
+                                        console.log(err);
+                                        res.status(500).end();
+                                        return;
+                                    }
+                                    res.status(200).end();
+                                });
+                            });
+                        }
+                        else {
+                            res.status(403).end();
+                        }
+                    }
+                    else {
+                        res.status(400).json({err:"Invalid Actor"});
+                    }
+                });
+            }
+            else {
+                res.status(403).end();
+            }
+        }
+        else {
+            res.status(400).json({err:"Invalid GameRoom"});
+        }
+    });
 });
 
 //Server Binding
 //=========================================================
-app.listen(config.server.port, function() {
+app.listen(config.server.port, () => {
     console.log("TurnTracker running on port "+config.server.port);
 });
