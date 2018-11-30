@@ -39,7 +39,8 @@ var Monster = require('./models/monster');
 //Session Setup
 app.use(session({
     secret: config.session.secret,
-    store: new MongoStore({mongooseConnection: mongoose.connection})
+    store: new MongoStore({mongooseConnection: mongoose.connection}),
+    saveUninitialized: false
 }));
 
 //Validation Helper Functions
@@ -197,6 +198,22 @@ app.post('/api/actor',(req,res)=>{
             return;
         }
         res.status(200).json({actorid:result._id});
+    });
+});
+app.get('/api/actor',(req,res)=>{
+    console.log('GET /api/actor');
+    if (!req.session.user) {
+        console.log(req.session);
+        res.status(401).end();
+        return;
+    }
+    Actor.find({playerid:req.session.user.id},(err,actors)=>{
+        if (err) {
+            console.log(err);
+            res.status(500).end();
+            return;
+        }
+        return actors;
     });
 });
 //Gets information on the specified Actor
