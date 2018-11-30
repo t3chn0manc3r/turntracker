@@ -1,27 +1,31 @@
 import React, { Component } from 'react';
 import './Characters.css';
 
+import CharacterRow from '../CharacterRow/CharacterRow';
+
 import axios from 'axios';
+axios.defaults.withCredentials = true
 
 class Characters extends Component {
     constructor(props) {
         super();
-        this.state = {chracters:[]};
+        this.state = {characters:[]};
     }
     componentDidMount() {
-        axios.get('http://localhost:3001/api/login').then((res)=>{
-            console.log(res.data);
-        });
-        axios.get('http://localhost:3001/api/actor').then((actors)=>{
-            console.log(actors);
+        axios.get('http://localhost:3001/api/actor').then((res)=>{
+            this.setState({characters:res.data});
         }).catch((err)=>{
             console.log(err);
         });
     }
     render() {
+        var actors = this.state.characters.map((actor)=>(
+            <CharacterRow key={actor._id} actor={actor} />
+        ));
         return (
             <div className="Characters">
                 <h2>CHARACTERS</h2>
+                {actors}
             </div>
         );
     }
