@@ -34,14 +34,27 @@ class CharacterRow extends Component {
         else if (actor.currflat < actor.flat) {
             flatchange = " dec";
         }
+        //<ActorModal identifier={actor._id} actor={actor}/>
         return (
             <div className="CharacterRow">
                 <div className="Name d-inline-block">{actor.name}</div>
-                <div className="HP d-inline-block">{actor.currhp+"/"+actor.hp}</div>
-                <div className={"AC d-inline-block icon"+acchange}>{actor.currac}</div>
-                <div className={"Touch d-inline-block icon"+touchchange}>{actor.currtouch}</div>
-                <div className={"Flat d-inline-block icon"+flatchange}>{actor.currflat}</div>
-                <ActorModal identifier={actor._id} actor={actor}/>
+                <div className="HP d-inline-block icon">
+                    <div className="icon-label">HP</div>
+                    <div className="icon-value">{actor.currhp+"/"+actor.hp}</div>
+                </div>
+                <div className={"AC d-inline-block icon"+acchange}>
+                    <div className="icon-label">AC</div>
+                    {actor.currac}
+                </div>
+                <div className={"Touch d-inline-block icon"+touchchange}>
+                    <div className="icon-label">Touch</div>
+                    {actor.currtouch}
+                </div>
+                <div className={"Flat d-inline-block icon"+flatchange}>
+                    <div className="icon-label">Flat</div>
+                    {actor.currflat}
+                </div>
+
                 <div className="progress health-bar">
                     <div className={"progress-bar "+status} role="progressbar" style={{width:per+"%"}} aria-valuenow={per+""} aria-valuemin="0" aria-valuemax="100"></div>
                 </div>

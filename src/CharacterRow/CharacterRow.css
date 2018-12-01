@@ -7,41 +7,24 @@
     color: white;
     background: url("/assets/wooden-panel.png") no-repeat;
 }
-.icon {
-    vertical-align: middle;
-    margin-left: 10px;
-    margin-right: 10px;
-}
 .Name {
     font-size: 2rem;
+    margin-left: 5px;
+    margin-right: 5px;
 }
-.AC {
-    background: url("/assets/ac.png") no-repeat;
-    height: 4.2rem;
-    width: 3.7rem;
-    padding-top: .3rem;
-    padding-left: .8rem;
-    font-size: 2rem;
-    color: black;
-    font-weight: bold;
+.icon {
+    text-align: center;
+    vertical-align: middle;
+    border: 2px solid white;
+    border-radius: 5px;
+    margin-left: 5px;
+    margin-right: 5px;
+    padding-left: 3px;
+    padding-right: 3px;
+    font-size: 2.5rem;
 }
-.Touch {
-    background: url("/assets/touch.png") no-repeat;
-    height: 4.2rem;
-    width: 3.7rem;
-    padding-top: 1.5rem;
-    padding-left: .6rem;
-    font-size: 1.6rem;
-    font-weight: bold;
-    color: black;
-}
-.Flat {
-    background: url("/assets/flat.png") no-repeat;
-    height: 4.2rem;
-    width: 3.7rem;
-    padding-top: .5rem;
-    padding-left: .7rem;
-    font-size: 1.6rem;
+.icon-label {
+    font-size:1rem;
 }
 .health-bar {
     height: 1.7rem;
