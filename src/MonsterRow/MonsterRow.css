@@ -1,0 +1,7 @@
+.MonsterRow {
+    border: 3px solid black;
+    border-radius: 10px;
+    background-color: lightgray;
+    padding: 5px;
+    margin: 5px;
+}

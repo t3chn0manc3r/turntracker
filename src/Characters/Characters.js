@@ -4,7 +4,7 @@ import './Characters.css';
 import CharacterRow from '../CharacterRow/CharacterRow';
 
 import axios from 'axios';
-axios.defaults.withCredentials = true
+axios.defaults.withCredentials = true;
 
 class Characters extends Component {
     constructor(props) {
@@ -25,6 +25,7 @@ class Characters extends Component {
         return (
             <div className="Characters">
                 <h2>CHARACTERS</h2>
+                <button className="btn btn-primary" onClick={()=>alert("Derp")}>New Character</button>
                 {actors}
             </div>
         );
