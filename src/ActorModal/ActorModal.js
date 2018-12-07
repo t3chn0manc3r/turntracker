@@ -19,7 +19,7 @@ class ActorModal extends Component {
             dexmod:props.actor.dexmod
         }
         this.updateName = this.updateName.bind(this);
-        this.updateHP = this. updateHP.bind(this);
+        this.updateHP = this.updateHP.bind(this);
         this.updateCurrHP = this.updateCurrHP.bind(this);
         this.updateAC = this.updateAC.bind(this);
         this.updateCurrAC = this.updateCurrAC.bind(this);

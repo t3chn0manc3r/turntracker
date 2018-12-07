@@ -19,7 +19,6 @@ class PlayerPanel extends Component {
         else {
             selected.push(ind);
         }
-        console.log(selected);
         this.setState(selected);
     }
     changeValue(e) {
@@ -71,8 +70,10 @@ class PlayerPanel extends Component {
                     <div className="rotation-body">
                         <h2>GAME TITLE</h2>
                         <input type="number" value={this.state.amount} onChange={this.changeValue}/>
-                        <button onClick={this.healSelected}>Heal</button>
-                        <button onClick={this.damageSelected}>Damage</button>
+                        <button className="btn btn-success" onClick={this.healSelected}>Heal</button>
+                        <button className="btn btn-danger" onClick={this.damageSelected}>Damage</button>
+                        <button className="btn btn-info" onClick={this.damageSelected}>Toggle View</button>
+                        <button className="btn btn-warning" onClick={this.damageSelected}>Deactivate</button>
                         <table className="table table-striped">
                             <thead>
                                 <tr>
