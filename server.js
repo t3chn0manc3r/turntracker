@@ -520,7 +520,7 @@ app.get('/api/gameroom/:gameid',(req,res)=>{
         res.status(401).end();
         return;
     }
-    GameRoom.findOne({gameid:req.params.gameid},(err,result)=>{
+    GameRoom.findOne({gameid:req.params.gameid}).populate('rotation.actor').populate('inactive').populate('requesting').exec((err,result)=>{
         if (err) {
             console.log(err);
             res.status(500).end();
@@ -876,6 +876,7 @@ app.post('/api/gameroom/:gameid/monster/:monsterid',(req,res)=>{
 });
 //Request Character to be added to the GameRoom
 app.post('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
+    console.log('POST /api/gameroom/'+req.params.gameid+'/actor/'+req.paramms.actorid);
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -895,16 +896,16 @@ app.post('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
                         return;
                     }
                     if (room) {
-                        var actorids = room.rotation.map((actor)=>actor.id);
-                        if (room.requesting.includes(actor._id)) {
+                        var actorids = room.rotation.map((obj)=>ObjectId(obj.actor));
+                        if (room.requesting.indexOf(actor._id) > -1) {
                             res.status(400).json({err:"Request Already Sent"});
                             return;
                         }
-                        else if (actorids.includes(actor._id)) {
+                        else if (actorids.indexOf(actor._id) > -1) {
                             res.status(400).json({err:"Actor Already in Game"});
                             return;
                         }
-                        GameRoom.updateOne({gameid:req.params.gameid},{$push:{requesting:actor._id}},(err)=>{
+                        GameRoom.updateOne({gameid:req.params.gameid},{$push:{requesting:ObjectId(actor._id)}},(err)=>{
                             if (err) {
                                 console.log(err);
                                 res.status(500).end();
@@ -929,6 +930,7 @@ app.post('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
 });
 //Approves a request for an Actor to join
 app.put('/api/gameroom/:gameid/actor/:actorid/approve',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/actor/'+req.params.actorid+'/approve');
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -941,7 +943,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/approve',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                if (room.requesting.includes(ObjectId(req.params.actorid))) {
+                if (room.requesting.indexOf(req.params.actorid) > -1) {
                     GameRoom.updateOne({gameid:req.params.gameid},
                      {$pull:{requesting:ObjectId(req.params.actorid)},
                      $push:{inactive:ObjectId(req.params.actorid)}},(err)=>{
@@ -968,6 +970,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/approve',(req,res)=>{
 });
 //Denies a request for an Actor to join
 app.put('/api/gameroom/:gameid/actor/:actorid/deny',(req,res)=>{
+    consle.log('PUT /api/gameroom/'+req.params.gameid+'/actor/'+req.params.actorid+'/deny');
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -980,7 +983,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deny',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                if (room.requesting.includes(ObjectId(req.params.actorid))) {
+                if (room.requesting.indexOf(req.params.actorid) > -1) {
                     GameRoom.updateOne({gameid:req.params.gameid},
                      {$pull:{requesting:ObjectId(req.params.actorid)}},(err)=>{
                          if (err) {
@@ -1006,6 +1009,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deny',(req,res)=>{
 });
 //Allows GM of the GameRoom to edit a joined Actor
 app.put('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/actor/'+req.params.actorid);
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -1017,8 +1021,8 @@ app.put('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
             return;
         }
         if (room) {
-            if ((room.rotation.includes(ObjectId(req.params.actorid)) ||
-             room.inactive.includes(ObjectId(req.params.actorid)))) {
+            if ((room.rotation.indexOf(req.params.actorid) > -1 ||
+             room.inactive.indexOf(req.params.actorid) > -1)) {
                 Actor.findOne({_id:req.params.actorid},(err,actor)=>{
                     if (err) {
                         console.log(err);
@@ -1062,6 +1066,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
 });
 //Hides the information of a joined Actor from the rest of the Players in the Game Room
 app.put('/api/gameroom/:gameid/actor/:actorid/hide',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/actor/'+req.params.actorid+'/hide');
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -1074,10 +1079,10 @@ app.put('/api/gameroom/:gameid/actor/:actorid/hide',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                var actorids = room.rotation.map((obj)=>obj.id);
-                if (actorids.includes(ObjectId(req.params.actorid))) {
-                    GameRoom.updateOne({gameid:req.params.gameid, "rotation.id":ObjectId(req.params.actorid)},
-                     {$set:{"rotation.$.visible":true}},(err)=>{
+                var actorids = room.rotation.map((obj)=>obj.actor);
+                if (actorids.indexOf(req.params.actorid) > -1) {
+                    GameRoom.updateOne({gameid:req.params.gameid, "rotation.actor":ObjectId(req.params.actorid)},
+                     {$set:{"rotation.$.visible":false}},(err)=>{
                          if (err) {
                              console.log(err);
                              res.status(500).end();
@@ -1101,6 +1106,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/hide',(req,res)=>{
 });
 //Reveals the information of a joined Actor to the rest of the Players in the Game Room
 app.put('/api/gameroom/:gameid/actor/:actorid/reveal',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/actor/'+req.params.actorid+'/reveal');
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -1113,10 +1119,10 @@ app.put('/api/gameroom/:gameid/actor/:actorid/reveal',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                var actorids = room.rotation.map((obj)=>obj.id);
-                if (actorids.includes(ObjectId(req.params.actorid))) {
-                    GameRoom.updateOne({gameid:req.params.gameid, "rotation.id":ObjectId(req.params.actorid)},
-                     {$set:{"rotation.$.visible":false}},(err)=>{
+                var actorids = room.rotation.map((obj)=>obj.actor);
+                if (actorids.indexOf(req.params.actorid) > -1) {
+                    GameRoom.updateOne({gameid:req.params.gameid, "rotation.actor":ObjectId(req.params.actorid)},
+                     {$set:{"rotation.$.visible":true}},(err)=>{
                          if (err) {
                              console.log(err);
                              res.status(500).end();
@@ -1140,6 +1146,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/reveal',(req,res)=>{
 });
 //Puts the specified Actor back into the GameRoom Rotation
 app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/actor/'+req.params.actorid+'/activate')
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -1152,7 +1159,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                if (room.inactive.includes(ObjectId(req.params.actorid))) {
+                if (room.inactive.indexOf(req.params.actorid) > -1) {
                     Actor.findOne((err,actor)=>{
                         if (err) {
                             console.log(err);
@@ -1164,7 +1171,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
                             GameRoom.updateOne({gameid:req.params.gameid},
                              {$pull:{inactive:ObjectId(req.params.actorid)},
                              $push:{rotation:{
-                                 id: ObjectId(req.params.actorid),
+                                 actor: ObjectId(req.params.actorid),
                                  visible: visibility
                              }}},(err)=>{
                                  if (err) {
@@ -1195,6 +1202,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
 });
 //Removes the specified Actor back into the GameRoom Rotation
 app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/actor/'+req.params.actorid+'/deactivate')
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -1207,11 +1215,11 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                var actorids = room.inactive.map((obj)=>obj.id);
-                if (actorids.includes(ObjectId(req.params.actorid))) {
+                var actorids = room.rotation.map((obj)=>obj.actor);
+                if (actorids.indexOf(req.params.actorid) > -1) {
                     GameRoom.updateOne({gameid:req.params.gameid},
                      {$push:{inactive:ObjectId(req.params.actorid)},
-                     $pull:{rotation:{id: ObjectId(req.params.actorid)}}},(err)=>{
+                     $pull:{rotation:{actor: ObjectId(req.params.actorid)}}},(err)=>{
                          if (err) {
                              console.log(err);
                              res.status(500).end();
@@ -1221,7 +1229,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
                     });
                 }
                 else {
-                    res.status(400).json({err:"Actor is not Inactive"});
+                    res.status(400).json({err:"Actor is not Active"});
                 }
             }
             else {
@@ -1247,8 +1255,8 @@ app.delete('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
             return;
         }
         if (room) {
-            if ((room.rotation.includes(ObjectId(req.params.actorid)) ||
-             room.inactive.includes(ObjectId(req.params.actorid)))) {
+            if ((room.rotation.indexOf(req.params.actorid)  > -1 ||
+             room.inactive.indexOf(req.params.actorid) > -1)) {
                 Actor.findOne({_id:req.params.actorid},(err,actor)=>{
                     if (err) {
                         console.log(err);

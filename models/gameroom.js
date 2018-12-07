@@ -11,9 +11,10 @@ var gameroom = new Schema({
     incombat: {type: Boolean,required:true},
     turn: {type:Number,required:true},
     ondeck: {type:Number,required:true},
-    rotation: {type:Array, required:true},
-    inactive: {type:Array, required:true},
-    requesting: {type:Array, required:true},
+    rotation: [{actor:{type:ObjectId, ref:'Actor', required:true},
+                visible:{type:Boolean, required:true}}],
+    inactive: [{type:ObjectId, ref:'Actor', required:true}],
+    requesting: [{type:ObjectId, ref:'Actor', required:true}],
     players: {type:Array, required:true}
 });
 
