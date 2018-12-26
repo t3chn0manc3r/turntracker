@@ -40,26 +40,26 @@ class CharacterRow extends Component {
                     <div className="Name d-inline-block">{actor.name}</div>
                     <div className="HP d-inline-block icon">
                         <div className="icon-label">HP</div>
-                        <div className="icon-value">{actor.currhp+"/"+actor.hp}</div>
+                        <div className="icon-value">{this.props.view ? actor.currhp+"/"+actor.hp : "?/?"}</div>
                     </div>
                     <div className={"AC d-inline-block icon"+acchange}>
                         <div className="icon-label">AC</div>
-                        <div className="icon-value">{actor.currac}</div>
+                        <div className="icon-value">{this.props.view ? actor.currac : "?"}</div>
                     </div>
                     <div className={"Touch d-inline-block icon"+touchchange}>
                         <div className="icon-label">Touch</div>
-                        <div className="icon-value">{actor.currtouch}</div>
+                        <div className="icon-value">{this.props.view ? actor.currtouch : "?"}</div>
                     </div>
                     <div className={"Flat d-inline-block icon"+flatchange}>
                         <div className="icon-label">Flat</div>
-                        <div className="icon-value">{actor.currflat}</div>
+                        <div className="icon-value">{this.props.view ? actor.currflat : "?"}</div>
                     </div>
 
                     <div className="progress health-bar">
-                        <div className={"progress-bar "+status} role="progressbar" style={{width:per+"%"}} aria-valuenow={per+""} aria-valuemin="0" aria-valuemax="100"></div>
+                        <div className={"progress-bar "+status} role="progressbar" style={this.props.view ? {width:per+"%"} : {width:"100%"}} aria-valuenow={this.props.view ? per+"" : "100"} aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
-                <ActorModal actor={actor}/>
+                {this.props.view ? (<ActorModal actor={actor}/>) : ""}
             </div>
         );
     }

@@ -1151,7 +1151,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
         res.status(401).end();
         return;
     }
-    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+    GameRoom.findOne({gameid:req.params.gameid}).populate('inactive').exec((err,room)=>{
         if (err) {
             console.log(err);
             res.status(500).end();
@@ -1159,7 +1159,13 @@ app.put('/api/gameroom/:gameid/actor/:actorid/activate',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                if (room.inactive.indexOf(req.params.actorid) > -1) {
+                var found = false;
+                room.inactive.forEach((act)=>{
+                    if(act._id == req.params.actorid) {
+                        found = true;
+                    }
+                });
+                if (found) {
                     Actor.findOne((err,actor)=>{
                         if (err) {
                             console.log(err);
@@ -1207,7 +1213,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
         res.status(401).end();
         return;
     }
-    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+    GameRoom.findOne({gameid:req.params.gameid}).populate('rotation').exec((err,room)=>{
         if (err) {
             console.log(err);
             res.status(500).end();
@@ -1216,7 +1222,8 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
         if (room) {
             if (req.session.user.id == room.gm) {
                 var actorids = room.rotation.map((obj)=>obj.actor);
-                if (actorids.indexOf(req.params.actorid) > -1) {
+                console.log(actorids)
+                if (actorids.indexOf(ObjectId(req.params.actorid)) > -1) {
                     GameRoom.updateOne({gameid:req.params.gameid},
                      {$push:{inactive:ObjectId(req.params.actorid)},
                      $pull:{rotation:{actor: ObjectId(req.params.actorid)}}},(err)=>{
