@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import './Login.css';
 
+import {connect} from 'react-redux';
+import {login} from '../actions';
 import axios from 'axios';
 
 class Login extends Component {
@@ -16,7 +18,8 @@ class Login extends Component {
             user:this.state.user,
             pass:this.state.pass
         }).then((res)=>{
-            console.log(res);
+            this.props.login(res.data);
+            console.log(this.props.user);
         }).catch((err)=>{
             console.log(err);
         });
@@ -40,4 +43,12 @@ class Login extends Component {
     }
 }
 
-export default Login;
+const mapStateToProps = state => ({
+    user: state
+})
+
+const mapDispatchToProps = dispatch => ({
+    login: info => dispatch(login(info))
+})
+
+export default connect(mapStateToProps,mapDispatchToProps)(Login);

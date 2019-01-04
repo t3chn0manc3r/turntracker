@@ -585,6 +585,7 @@ app.delete('/api/gameroom/:gameid',(req,res)=>{
 });
 //Starts combat in the GameRoom
 app.put('/api/gameroom/:gameid/start',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/start');
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -608,7 +609,7 @@ app.put('/api/gameroom/:gameid/start',(req,res)=>{
                         res.status(500).end();
                         return;
                     }
-                    if (result && n === 1) {
+                    if (result) {
                         res.status(200).end();
                     }
                     else {
@@ -627,6 +628,7 @@ app.put('/api/gameroom/:gameid/start',(req,res)=>{
 });
 //Cycles the turn to the next actor in the GameRoom
 app.put('/api/gameroom/:gameid/next',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/next');
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -648,7 +650,7 @@ app.put('/api/gameroom/:gameid/next',(req,res)=>{
                             res.status(500).end();
                             return;
                         }
-                        if (result && n === 1) {
+                        if (result) {
                             res.status(200).end();
                         }
                         else {
@@ -671,6 +673,7 @@ app.put('/api/gameroom/:gameid/next',(req,res)=>{
 });
 //Stops combat in the specified GameRoom
 app.put('/api/gameroom/:gameid/end',(req,res)=>{
+    console.log('PUT /api/gameroom/'+req.params.gameid+'/end');
     if (!req.session.user) {
         res.status(401).end();
         return;
@@ -688,7 +691,7 @@ app.put('/api/gameroom/:gameid/end',(req,res)=>{
                         res.status(500).end();
                         return;
                     }
-                    if (result && n === 1) {
+                    if (result) {
                         res.status(200).end();
                     }
                     else {
@@ -1010,19 +1013,22 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deny',(req,res)=>{
 //Allows GM of the GameRoom to edit a joined Actor
 app.put('/api/gameroom/:gameid/actor/:actorid',(req,res)=>{
     console.log('PUT /api/gameroom/'+req.params.gameid+'/actor/'+req.params.actorid);
+    console.log(req.body);
     if (!req.session.user) {
         res.status(401).end();
         return;
     }
-    GameRoom.findOne({gameid:req.params.gameid},(err,room)=>{
+    GameRoom.findOne({gameid:req.params.gameid}).populate('rotation').populate('inactive').exec((err,room)=>{
         if (err) {
             console.log(err);
             res.status(500).end();
             return;
         }
         if (room) {
-            if ((room.rotation.indexOf(req.params.actorid) > -1 ||
-             room.inactive.indexOf(req.params.actorid) > -1)) {
+            var rotactorids = room.rotation.map(act=>act.actor._id.toString());
+            var inactids = room.inactive.map(inact=>inact._id.toString());
+            if ((rotactorids.indexOf(req.params.actorid) > -1 ||
+             inactids.indexOf(req.params.actorid) > -1)) {
                 Actor.findOne({_id:req.params.actorid},(err,actor)=>{
                     if (err) {
                         console.log(err);
@@ -1079,7 +1085,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/hide',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                var actorids = room.rotation.map((obj)=>obj.actor);
+                var actorids = room.rotation.map((obj)=>obj.actor._id.toString());
                 if (actorids.indexOf(req.params.actorid) > -1) {
                     GameRoom.updateOne({gameid:req.params.gameid, "rotation.actor":ObjectId(req.params.actorid)},
                      {$set:{"rotation.$.visible":false}},(err)=>{
@@ -1119,7 +1125,7 @@ app.put('/api/gameroom/:gameid/actor/:actorid/reveal',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                var actorids = room.rotation.map((obj)=>obj.actor);
+                var actorids = room.rotation.map((obj)=>obj.actor._id.toString());
                 if (actorids.indexOf(req.params.actorid) > -1) {
                     GameRoom.updateOne({gameid:req.params.gameid, "rotation.actor":ObjectId(req.params.actorid)},
                      {$set:{"rotation.$.visible":true}},(err)=>{
@@ -1221,9 +1227,8 @@ app.put('/api/gameroom/:gameid/actor/:actorid/deactivate',(req,res)=>{
         }
         if (room) {
             if (req.session.user.id == room.gm) {
-                var actorids = room.rotation.map((obj)=>obj.actor);
-                console.log(actorids)
-                if (actorids.indexOf(ObjectId(req.params.actorid)) > -1) {
+                var actorids = room.rotation.map((obj)=>obj.actor._id.toString());
+                if (actorids.indexOf(req.params.actorid) > -1) {
                     GameRoom.updateOne({gameid:req.params.gameid},
                      {$push:{inactive:ObjectId(req.params.actorid)},
                      $pull:{rotation:{actor: ObjectId(req.params.actorid)}}},(err)=>{
